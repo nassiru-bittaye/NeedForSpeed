@@ -1,0 +1,172 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My First Car Game</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: #151515;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+
+h1 {
+    color: #00e676;
+}
+
+.game-container {
+    padding: 15px;
+}
+
+canvas {
+    background: #444;
+    border: 5px solid white;
+    max-width: 100%;
+}
+
+#score {
+    font-size: 24px;
+    color: #00e676;
+    margin: 10px;
+}
+
+button {
+    background: #00e676;
+    color: black;
+    border: none;
+    padding: 14px 30px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #00c853;
+}
+</style>
+</head>
+
+<body>
+
+<div class="game-container">
+    <h1>🏎️ CAR RACING GAME</h1>
+
+    <div id="score">Score: 0</div>
+
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+    <p>Use ← and → arrow keys to drive!</p>
+
+    <button onclick="startGame()">START GAME</button>
+</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let car = {
+    x: 175,
+    y: 480,
+    width: 50,
+    height: 90,
+    speed: 6
+};
+
+let keys = {};
+let score = 0;
+let running = false;
+let animationId;
+
+function drawCar(x, y, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, 50, 90);
+
+    ctx.fillStyle = "#a5d6f9";
+    ctx.fillRect(x + 8, y + 12, 34, 22);
+
+    ctx.fillStyle = "#222";
+    ctx.fillRect(x - 5, y + 15, 7, 22);
+    ctx.fillRect(x + 48, y + 15, 7, 22);
+    ctx.fillRect(x - 5, y + 55, 7, 22);
+    ctx.fillRect(x + 48, y + 55, 7, 22);
+
+    ctx.fillStyle = "yellow";
+    ctx.fillRect(x + 5, y + 3, 10, 5);
+    ctx.fillRect(x + 35, y + 3, 10, 5);
+}
+
+function drawRoad() {
+    ctx.fillStyle = "#444";
+    ctx.fillRect(0, 0, 400, 600);
+
+    ctx.fillStyle = "white";
+
+    for (let y = 0; y < 600; y += 100) {
+        ctx.fillRect(130, y, 8, 50);
+        ctx.fillRect(262, y, 8, 50);
+    }
+
+    ctx.fillStyle = "green";
+    ctx.fillRect(0, 0, 10, 600);
+    ctx.fillRect(390, 0, 10, 600);
+}
+  
+function draw() {
+    drawRoad();
+    drawCar(car.x, car.y, "#00e676");
+}
+
+function startGame() {
+    cancelAnimationFrame(animationId);
+
+    car.x = 175;
+    score = 0;
+    running = true;
+
+    gameLoop();
+}
+
+function gameLoop() {
+    if (!running) return;
+
+    if (keys["ArrowLeft"] && car.x > 15) {
+        car.x -= car.speed;
+    }
+
+    if (keys["ArrowRight"] && car.x < 335) {
+        car.x += car.speed;
+    }
+
+    score++;
+
+    draw();
+
+    document.getElementById("score").textContent =
+        "Score: " + Math.floor(score / 10);
+
+    animationId = requestAnimationFrame(gameLoop);
+}
+
+document.addEventListener("keydown", function(e) {
+    keys[e.key] = true;
+});
+
+document.addEventListener("keyup", function(e) {
+    keys[e.key] = false;
+});
+
+draw();
+</script>
+
+</body>
+</html>
