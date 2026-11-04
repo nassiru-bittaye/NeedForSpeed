@@ -3,527 +3,482 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Need For Speed</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BMW Street Racing</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;overflow:hidden;background:#87ceeb;font-family:Arial,sans-serif}
+body{margin:0;overflow:hidden;background:#86bce4;font-family:Arial,sans-serif}
 canvas{display:block}
-#hud{position:fixed;top:15px;left:15px;color:white;font-weight:bold;font-size:18px;text-shadow:2px 2px 4px black;z-index:5;line-height:1.7}
-#viewButton,#restartButton{border:2px solid white;border-radius:10px;padding:11px 15px;background:#111d;color:white;font-weight:bold;cursor:pointer}
-#viewButton{position:fixed;top:15px;right:15px;z-index:6}
-#crashFlash{position:fixed;inset:0;background:red;opacity:0;pointer-events:none;z-index:8}
-#crashMessage{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;color:white;text-align:center;font-weight:900;font-size:48px;text-shadow:3px 3px 8px black;background:#0005;z-index:10}
-#crashMessage button{margin-top:20px;font-size:18px}
-#controls{position:fixed;bottom:22px;left:0;right:0;display:flex;justify-content:space-between;padding:0 24px;pointer-events:none;z-index:6}
-.controlGroup{display:flex;gap:14px;pointer-events:auto}
-.control{width:68px;height:68px;border:2px solid #ffffffaa;border-radius:18px;color:white;background:#101827aa;font-size:28px;font-weight:bold;touch-action:none;user-select:none}
-.control:active{background:#3985ddee}
-#help{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);color:white;font-size:12px;text-shadow:1px 1px 3px black;white-space:nowrap;z-index:5}
-@media(max-width:600px){#hud{font-size:15px}.control{width:60px;height:60px}#help{bottom:95px}}
+#hud{position:fixed;top:14px;left:14px;color:white;font-weight:bold;font-size:17px;line-height:1.8;text-shadow:2px 2px 5px #000;z-index:3}
+button{cursor:pointer}
+#view{position:fixed;right:12px;top:12px;z-index:4;background:#111d;color:white;border:1px solid #aaa;border-radius:9px;padding:11px;font-weight:bold}
+#controls{position:fixed;bottom:22px;left:0;right:0;display:flex;justify-content:space-between;padding:0 20px;z-index:4;pointer-events:none}
+.group{display:flex;gap:12px;pointer-events:auto}
+.control{width:65px;height:65px;border-radius:16px;border:2px solid #ffffff99;background:#111b;color:white;font-size:26px;font-weight:bold;touch-action:none;user-select:none}
+#help{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);font-size:11px;color:white;text-shadow:1px 1px 3px black;white-space:nowrap;z-index:3}
+#flash{position:fixed;inset:0;background:#f00;opacity:0;pointer-events:none;z-index:7}
+#crash{display:none;position:fixed;inset:0;z-index:8;background:#0009;color:white;align-items:center;justify-content:center;flex-direction:column;font-size:44px;font-weight:900;text-shadow:3px 3px 5px #000}
+#restart{margin-top:20px;padding:13px 22px;border-radius:10px;border:2px solid white;background:#142e50;color:white;font-size:18px}
+@media(max-width:600px){#hud{font-size:14px}.control{width:58px;height:58px}#help{bottom:91px}}
 </style>
 </head>
 <body>
 <div id="hud">SPEED: <span id="speed">0</span> KM/H<br>DISTANCE: <span id="distance">0</span> M</div>
-<button id="viewButton">🚘 EXTERIOR VIEW</button>
-<div id="crashFlash"></div>
-<div id="crashMessage">
+<button id="view">🚘 EXTERIOR VIEW</button>
+<div id="flash"></div>
+<div id="crash">
   <div>💥 CRASH!</div>
-  <div style="font-size:20px;margin-top:8px">You crashed your car!</div>
-  <button id="restartButton">🔄 DRIVE AGAIN</button>
+  <div style="font-size:18px;margin-top:12px">Your race has ended</div>
+  <button id="restart">DRIVE AGAIN ↻</button>
 </div>
 <div id="controls">
-  <div class="controlGroup">
-    <button class="control" id="leftButton">◀</button>
-    <button class="control" id="rightButton">▶</button>
+  <div class="group">
+    <button class="control" id="left">◀</button>
+    <button class="control" id="right">▶</button>
   </div>
-  <div class="controlGroup">
-    <button class="control" id="brakeButton">▼</button>
-    <button class="control" id="gasButton">▲</button>
+  <div class="group">
+    <button class="control" id="brake">▼</button>
+    <button class="control" id="gas">▲</button>
   </div>
 </div>
-<div id="help">A/D or ←/→ to steer · W/↑ to accelerate · S/↓ to brake</div>
+<div id="help">A/D or ←/→ STEER · W/↑ ACCELERATE · S/↓ BRAKE</div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
-(() => {
+(()=>{
 "use strict";
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x8bc9f0);
-scene.fog = new THREE.Fog(0x8bc9f0,85,260);
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x86bce4);
+scene.fog=new THREE.Fog(0x86bce4,100,340);
 
-const camera = new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,600);
-const renderer = new THREE.WebGLRenderer({antialias:true});
+const camera=new THREE.PerspectiveCamera(76,innerWidth/innerHeight,.1,700);
+const renderer=new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth,innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;
+renderer.shadowMap.enabled=true;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.15;
 document.body.appendChild(renderer.domElement);
 
-scene.add(new THREE.HemisphereLight(0xd9efff,0x536044,2));
-const sunlight = new THREE.DirectionalLight(0xfff2d5,3);
-sunlight.position.set(-30,55,-45);
-sunlight.castShadow = true;
-sunlight.shadow.mapSize.set(1024,1024);
-scene.add(sunlight);
+scene.add(new THREE.HemisphereLight(0xe2f4ff,0x59604a,2.1));
+const sun=new THREE.DirectionalLight(0xfff0d5,2.8);
+sun.position.set(-30,60,-40);
+sun.castShadow=true;
+scene.add(sun);
 
-function mat(color,roughness=.8,metalness=0){
-  return new THREE.MeshStandardMaterial({color,roughness,metalness});
+function mat(c,r=.75,m=0){
+ return new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
 }
-function box(parent,w,h,d,color,x,y,z,material=null){
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material||mat(color));
-  m.position.set(x,y,z);
-  m.castShadow = true;
-  m.receiveShadow = true;
-  parent.add(m);
-  return m;
+function box(parent,w,h,d,c,x,y,z,ma=null){
+ const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),ma||mat(c));
+ o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;
+ parent.add(o);return o;
 }
-function cylinder(parent,rt,rb,h,color,x,y,z,segments=12){
-  const m = new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,segments),mat(color));
-  m.position.set(x,y,z);
-  m.castShadow = true;
-  parent.add(m);
-  return m;
+function cyl(parent,rt,rb,h,c,x,y,z,ma=null){
+ const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,20),ma||mat(c));
+ o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o;
+}
+function plane(w,h,c,x,y,z){
+ const o=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat(c));
+ o.rotation.x=-Math.PI/2;o.position.set(x,y,z);scene.add(o);return o;
 }
 
-const grassMat=mat(0x557e43), roadMat=mat(0x33383d), shoulderMat=mat(0x77766c);
-const whiteMat=mat(0xf3f0df), yellowMat=mat(0xffd34d), metalMat=mat(0x9ba4aa,.3,.8);
-const interiorMat=mat(0x171b21), seatMat=mat(0x292d33), trimMat=mat(0x6d777e,.35,.7);
-const glassMat=new THREE.MeshStandardMaterial({
-  color:0x8bd6ed,roughness:.15,metalness:.1,transparent:true,opacity:.27,side:THREE.DoubleSide
-});
+// ROAD AND ENVIRONMENT
+plane(600,900,0x557b43,0,-.2,-300);
+plane(15,900,0x30343a,0,-.08,-300);
+plane(2.1,900,0x77756a,-8.5,-.06,-300);
+plane(2.1,900,0x77756a,8.5,-.06,-300);
+plane(.12,900,0xe7e5d7,-7.1,-.035,-300);
+plane(.12,900,0xe7e5d7,7.1,-.035,-300);
 
-// Ground and road
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(600,700),grassMat);
-ground.rotation.x=-Math.PI/2;
-ground.position.set(0,-.15,-220);
-ground.receiveShadow=true;
-scene.add(ground);
-
-const road=new THREE.Mesh(new THREE.PlaneGeometry(15,700),roadMat);
-road.rotation.x=-Math.PI/2;
-road.position.set(0,-.04,-220);
-road.receiveShadow=true;
-scene.add(road);
-
-for(const side of [-1,1]){
-  const shoulder=new THREE.Mesh(new THREE.PlaneGeometry(2.1,700),shoulderMat);
-  shoulder.rotation.x=-Math.PI/2;
-  shoulder.position.set(side*8.5,-.035,-220);
-  scene.add(shoulder);
-
-  const edge=new THREE.Mesh(new THREE.PlaneGeometry(.13,700),whiteMat);
-  edge.rotation.x=-Math.PI/2;
-  edge.position.set(side*7.1,-.02,-220);
-  scene.add(edge);
-}
-
-const laneDashes=[];
-for(let z=-550;z<80;z+=12){
-  const dash=new THREE.Mesh(new THREE.PlaneGeometry(.16,5.5),yellowMat);
-  dash.rotation.x=-Math.PI/2;
-  dash.position.set(0,.005,z);
-  scene.add(dash);
-  laneDashes.push(dash);
+const roadLines=[];
+for(let z=-600;z<80;z+=13){
+ roadLines.push(box(scene,.16,.025,5.5,0xffd34e,0,-.005,z));
 }
 for(const x of [-2.5,2.5]){
-  for(let z=-550;z<80;z+=18){
-    const line=new THREE.Mesh(new THREE.PlaneGeometry(.07,8),whiteMat);
-    line.rotation.x=-Math.PI/2;
-    line.position.set(x,.004,z);
-    scene.add(line);
-  }
+ for(let z=-600;z<80;z+=18){
+  box(scene,.07,.02,8,0xf4f0e3,x,-.006,z);
+ }
 }
 
-// Mountains
-function mountain(x,z,width,height,color){
-  const m=new THREE.Mesh(new THREE.ConeGeometry(width,height,5,1),mat(color));
-  m.position.set(x,height/2-1,z);
-  m.rotation.y=Math.random()*Math.PI;
-  m.scale.z=1.7;
-  scene.add(m);
-}
-for(let i=0;i<32;i++){
-  const side=i%2===0?-1:1;
-  mountain(side*(28+Math.random()*85),-100-Math.random()*380,
-    13+Math.random()*23,22+Math.random()*48,[0x647f7a,0x738b83,0x84938c][i%3]);
+for(let i=0;i<38;i++){
+ const side=i%2?1:-1,h=22+Math.random()*45;
+ const mountain=new THREE.Mesh(new THREE.ConeGeometry(15+Math.random()*22,h,5),mat(0x738981));
+ mountain.position.set(side*(35+Math.random()*80),h/2-1,-100-Math.random()*480);
+ mountain.scale.z=1.6;scene.add(mountain);
 }
 
-// Clouds
-function cloud(x,y,z){
-  const g=new THREE.Group(), white=mat(0xffffff);
-  for(let i=0;i<6;i++){
-    const puff=new THREE.Mesh(new THREE.SphereGeometry(2.5+Math.random()*2,12,10),white);
-    puff.position.set(i*2.6,Math.random()*1.1,Math.random()*1.5);
-    puff.scale.y=.65;
-    g.add(puff);
-  }
-  g.position.set(x,y,z);
-  scene.add(g);
+function makeTree(x,z){
+ const g=new THREE.Group();
+ cyl(g,.15,.24,1.8,0x64452d,0,.9,0);
+ const leaves=new THREE.Mesh(new THREE.ConeGeometry(1.25,3.6,8),mat([0x245a35,0x326c3b,0x477b42][Math.floor(Math.random()*3)]));
+ leaves.position.y=2.8;g.add(leaves);
+ g.position.set(x,0,z);scene.add(g);
+ return g;
 }
-for(let i=0;i<22;i++)cloud((Math.random()-.5)*220,32+Math.random()*22,-50-Math.random()*430);
-
-// Trees
-function tree(x,z,size){
-  const g=new THREE.Group();
-  cylinder(g,.16*size,.24*size,2*size,0x65432d,0,size,0,8);
-  const leaves=new THREE.Mesh(new THREE.ConeGeometry(1.3*size,3.4*size,8),
-    mat([0x245b35,0x326c3c,0x477b42][Math.floor(Math.random()*3)]));
-  leaves.position.y=3.1*size;
-  leaves.castShadow=true;
-  g.add(leaves);
-  const upper=new THREE.Mesh(new THREE.ConeGeometry(.95*size,2.5*size,8),mat(0x356f3a));
-  upper.position.y=4.5*size;
-  g.add(upper);
-  g.position.set(x,0,z);
-  scene.add(g);
+const roadside=[];
+for(let i=0;i<90;i++){
+ const side=i%2?1:-1;
+ const z=-Math.random()*650;
+ roadside.push(makeTree(side*(12+Math.random()*32),z));
 }
-for(let i=0;i<115;i++){
-  const side=i%2===0?-1:1;
-  tree(side*(11+Math.random()*50),-Math.random()*600,.7+Math.random()*1.8);
-}
-
-// Guardrails
+const rails=[];
 for(const side of [-1,1]){
-  for(let z=-500;z<80;z+=7){
-    box(scene,.18,.18,7,0xb8c0c2,side*8,.9,z,metalMat);
-    box(scene,.15,1.1,.15,0x666c70,side*8,.45,z);
-  }
-  for(let z=-500;z<80;z+=21){
-    box(scene,.13,.38,.08,0xffe4a0,side*7.85,.9,z);
-  }
+ for(let z=-600;z<80;z+=8){
+  rails.push(box(scene,.14,.16,7,0xa6afb5,side*8,.8,z,mat(0x9ca6ac,.35,.75)));
+  box(scene,.13,1,.13,0x73797d,side*8,.4,z);
+ }
 }
 
-// Player vehicle
-const player=new THREE.Group();
-scene.add(player);
-const carBodyMat=mat(0x125de0,.25,.45);
+// CAR: separate exterior and interior so the cockpit remains visible.
+const car=new THREE.Group();scene.add(car);
+const exterior=new THREE.Group();car.add(exterior);
+const cockpit=new THREE.Group();car.add(cockpit);
+
+const bluePaint=mat(0x1256b5,.23,.62);
+const blackLeather=mat(0x101318,.72);
+const softLeather=mat(0x242a30,.85);
+const silver=mat(0x9da9b2,.28,.85);
+const glass=new THREE.MeshStandardMaterial({
+ color:0x80c6e4,transparent:true,opacity:.22,roughness:.15,
+ side:THREE.DoubleSide
+});
+
+// Sporty blue car exterior
+box(exterior,2,.48,4.2,0x1256b5,0,.65,0,bluePaint);
+box(exterior,1.65,.16,1.15,0x1256b5,0,.98,-1.25,bluePaint);
+box(exterior,1.65,.15,.95,0x1256b5,0,.97,1.22,bluePaint);
+box(exterior,1.4,.035,1.0,0x2674d6,0,.92,-1.5);
+box(exterior,1.6,.1,.13,0xdff5ff,0,.65,-2.12);
+for(const x of [-.73,.73]){
+ box(exterior,.32,.12,.12,0xfff0cf,x,.7,-2.1);
+ box(exterior,.35,.17,.1,0xff2424,x,.67,2.1);
+}
+box(exterior,1.58,.12,1.25,0x1256b5,0,1.8,.04,bluePaint);
 
 function wheel(parent,x,y,z){
-  const w=new THREE.Mesh(new THREE.CylinderGeometry(.39,.39,.28,20),mat(0x111111,.95));
-  w.rotation.z=Math.PI/2;
-  w.position.set(x,y,z);
-  w.castShadow=true;
-  parent.add(w);
-  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,.30,16),metalMat);
-  hub.rotation.z=Math.PI/2;
-  hub.position.set(x,y,z);
-  parent.add(hub);
+ const tyre=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.27,24),mat(0x111214,.96));
+ tyre.rotation.z=Math.PI/2;tyre.position.set(x,y,z);parent.add(tyre);
+ const rim=new THREE.Mesh(new THREE.CylinderGeometry(.23,.23,.29,12),silver);
+ rim.rotation.z=Math.PI/2;rim.position.set(x,y,z);parent.add(rim);
+ const hub=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,.3,12),mat(0x252b31,.3,.7));
+ hub.rotation.z=Math.PI/2;hub.position.set(x,y,z);parent.add(hub);
 }
-
-box(player,2,.48,4.2,0x125de0,0,.66,0,carBodyMat);
-box(player,1.75,.15,1.05,0x125de0,0,1.02,-1.15,carBodyMat);
-box(player,1.78,.15,.95,0x125de0,0,1,1.18,carBodyMat);
-box(player,1.4,.035,1.2,0x347cf0,0,.93,-1.35);
-box(player,1.55,.08,.12,0xb9e6ff,0,.58,-2.12);
-for(const x of [-.72,.72]){
-  box(player,.35,.12,.12,0xfff1cc,x,.74,-2.12);
-  box(player,.42,.2,.1,0xff2929,x,.65,2.1);
-  wheel(player,x*1.22,.42,-1.32);
-  wheel(player,x*1.22,.42,1.34);
+for(const x of [-1,1]){
+ wheel(exterior,x,.4,-1.35);
+ wheel(exterior,x,.4,1.35);
+ const pillar=box(exterior,.09,.95,.12,0x17202a,x*.78,1.36,-.7);
+ pillar.rotation.x=-.16;
+ const rear=box(exterior,.1,.8,.12,0x17202a,x*.78,1.36,.72);
+ rear.rotation.x=.18;
 }
+const windshield=new THREE.Mesh(new THREE.PlaneGeometry(1.48,.8),glass);
+windshield.position.set(0,1.43,-.72);windshield.rotation.x=-.18;exterior.add(windshield);
 
-// Roof, pillars, glass
-box(player,1.55,.12,1.3,0x125de0,0,1.82,.05,carBodyMat);
-for(const x of [-.78,.78]){
-  const p=box(player,.09,.95,.11,0x172b47,x,1.38,-.7);
-  p.rotation.x=-.16;
-  const rp=box(player,.1,.8,.12,0x172b47,x,1.38,.72);
-  rp.rotation.x=.18;
-}
-const windscreen=new THREE.Mesh(new THREE.PlaneGeometry(1.43,.79),glassMat);
-windscreen.position.set(0,1.42,-.72);
-windscreen.rotation.x=-.18;
-player.add(windscreen);
-for(const side of [-1,1]){
-  const win=new THREE.Mesh(new THREE.PlaneGeometry(.95,.64),glassMat);
-  win.position.set(side*.81,1.43,0);
-  win.rotation.y=side*Math.PI/2;
-  player.add(win);
-}
+// BMW-INSPIRED DRIVER COCKPIT
+// Black stitched-style dashboard, silver trim and a wide instrument binnacle.
+box(cockpit,1.83,.29,.56,0x111419,0,1.03,-.76,blackLeather);
+box(cockpit,1.72,.045,.18,0x373d43,0,1.20,-.87);
+box(cockpit,1.67,.025,.035,0xb5bec5,0,1.17,-.99,silver);
 
-// Interior dashboard
-box(player,1.72,.28,.5,0x171b21,0,1.05,-.78,interiorMat);
-box(player,1.5,.06,.23,0x30363c,0,1.20,-.82);
-box(player,1.5,.035,.035,0x838e95,0,1.17,-.98,trimMat);
+// Digital instrument screen
+const gaugeScreen=new THREE.MeshStandardMaterial({
+ color:0x071c29,emissive:0x075078,emissiveIntensity:.65,metalness:.3,roughness:.25
+});
+box(cockpit,.77,.27,.07,0x070a0e,-.43,1.27,-.78,blackLeather);
+box(cockpit,.68,.19,.025,0x071c29,-.43,1.27,-.735,gaugeScreen);
 
-// Gauges
-box(player,.62,.20,.08,0x05090d,-.40,1.24,-.80);
+// Twin circular gauges
 for(let i=0;i<2;i++){
-  const gauge=new THREE.Mesh(new THREE.CircleGeometry(.073,24),mat(0x123c4c,.35,.2));
-  gauge.position.set(-.55+i*.3,1.25,-.748);
-  player.add(gauge);
-  const needle=box(player,.015,.07,.012,0xff3434,-.55+i*.3,1.26,-.735);
-  needle.rotation.z=-.45-i*.4;
+ const x=-.61+i*.36;
+ const rim=new THREE.Mesh(new THREE.TorusGeometry(.078,.009,8,28),silver);
+ rim.position.set(x,1.27,-.715);cockpit.add(rim);
+ const face=new THREE.Mesh(new THREE.CircleGeometry(.067,28),mat(0x071521,.3));
+ face.position.set(x,1.27,-.72);cockpit.add(face);
+ for(let j=0;j<9;j++){
+  const a=j/9*Math.PI*2;
+  const tick=box(cockpit,.008,.018,.009,0x64d8ff,
+    x+Math.cos(a)*.049,1.27+Math.sin(a)*.049,-.707);
+  tick.rotation.z=-a;
+ }
+ const needle=box(cockpit,.008,.052,.012,0xff514e,x,1.28,-.697);
+ needle.rotation.z=-.5+i*.9;
 }
 
-// Centre console
-box(player,.44,.14,.55,0x20252b,.25,.88,-.32,interiorMat);
-box(player,.30,.17,.025,0x050b12,.25,1.05,-.47);
-const screenMat=new THREE.MeshStandardMaterial({color:0x24a9d8,emissive:0x0875bb,emissiveIntensity:1.2});
-box(player,.24,.105,.018,0x164a6a,.25,1.055,-.45,screenMat);
-for(let i=0;i<4;i++){
-  box(player,.045,.035,.025,i%2?0xffa22d:0x8295a1,.12+i*.085,.94,-.45);
+// Central infotainment screen, tilted towards driver
+box(cockpit,.51,.39,.08,0x11161b,.31,1.16,-.66,blackLeather);
+const displayMat=new THREE.MeshStandardMaterial({
+ color:0x123c50,emissive:0x0876a7,emissiveIntensity:.9,roughness:.25
+});
+const display=box(cockpit,.43,.29,.025,0x123c50,.31,1.17,-.61,displayMat);
+display.rotation.z=-.08;
+
+// Screen details
+for(let i=0;i<3;i++){
+ box(cockpit,.22,.012,.012,0x58d5ff,.31,1.24-i*.065,-.59);
+}
+for(let i=0;i<5;i++){
+ box(cockpit,.055,.04,.025,[0x2877a0,0x54bde0,0x5b6e7c,0x2877a0,0x54bde0][i],
+ .13+i*.09,.91,-.52);
 }
 
-// Steering wheel
+// Air vents
+for(const x of [-.77,.76]){
+ box(cockpit,.22,.09,.035,0x080b0e,x,1.12,-.81);
+ for(let i=0;i<3;i++){
+  box(cockpit,.16,.009,.012,0x87929a,x,1.09+i*.025,-.785,silver);
+ }
+}
+
+// BMW-style three-spoke steering wheel
 const steeringWheel=new THREE.Group();
-steeringWheel.position.set(-.43,1.27,-.36);
-player.add(steeringWheel);
-const ring=new THREE.Mesh(new THREE.TorusGeometry(.245,.035,10,32),mat(0x090b0e,.5));
-steeringWheel.add(ring);
-const hub=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.07,16),trimMat);
-hub.rotation.x=Math.PI/2;
-hub.position.z=.015;
-steeringWheel.add(hub);
-box(steeringWheel,.045,.34,.045,0x555d64,0,0,.01,trimMat);
-const spoke=box(steeringWheel,.32,.045,.045,0x555d64,0,-.05,.01,trimMat);
-spoke.rotation.z=.12;
+steeringWheel.position.set(-.45,1.28,-.36);
+cockpit.add(steeringWheel);
 
-// Seats
-for(const x of [-.52,.52]){
-  box(player,.55,.17,.58,0x171a1f,x,.72,.45,seatMat);
-  box(player,.55,.75,.18,0x242930,x,1.12,.70,seatMat);
-  box(player,.38,.08,.08,0x424a52,x,1.40,.59);
+const wheelRing=new THREE.Mesh(
+ new THREE.TorusGeometry(.255,.033,12,40),mat(0x090b0e,.48)
+);
+steeringWheel.add(wheelRing);
+
+const wheelHub=new THREE.Mesh(
+ new THREE.CylinderGeometry(.075,.075,.055,24),mat(0x333b43,.3,.5)
+);
+wheelHub.rotation.x=Math.PI/2;
+wheelHub.position.z=.015;
+steeringWheel.add(wheelHub);
+
+// Three spokes
+box(steeringWheel,.038,.19,.035,0x9ba5ad,0,-.11,.018,silver);
+const leftSpoke=box(steeringWheel,.18,.035,.035,0x9ba5ad,-.09,-.03,.018,silver);
+leftSpoke.rotation.z=-.25;
+const rightSpoke=box(steeringWheel,.18,.035,.035,0x9ba5ad,.09,-.03,.018,silver);
+rightSpoke.rotation.z=.25;
+
+// Centre badge
+const badge=new THREE.Mesh(new THREE.CircleGeometry(.043,24),mat(0x2465a8,.3,.3));
+badge.position.set(0,0,.047);steeringWheel.add(badge);
+
+// Gear selector and centre tunnel
+box(cockpit,.44,.14,.72,0x171b20,.27,.82,-.13,blackLeather);
+box(cockpit,.24,.045,.23,0x30373d,.27,.92,-.14,silver);
+box(cockpit,.10,.23,.12,0x11151a,.27,1.01,-.14);
+const gearKnob=new THREE.Mesh(new THREE.SphereGeometry(.075,16,12),mat(0x3b4249,.22,.75));
+gearKnob.position.set(.27,1.14,-.14);cockpit.add(gearKnob);
+box(cockpit,.19,.025,.11,0x070a0d,.02,.91,.16);
+box(cockpit,.19,.025,.11,0x070a0d,.49,.91,.16);
+
+// Leather seats and door trim
+for(const x of [-.53,.53]){
+ box(cockpit,.53,.17,.58,0x161a1f,x,.7,.46,softLeather);
+ box(cockpit,.53,.73,.18,0x242a30,x,1.09,.7,softLeather);
+ box(cockpit,.36,.05,.05,0x4c555c,x,1.35,.59,silver);
 }
-
-// Door panels
 for(const side of [-1,1]){
-  box(player,.08,.36,1.25,0x1a1e24,side*.88,.98,.25,interiorMat);
-  box(player,.10,.045,.48,0x59636a,side*.84,1.10,.26,trimMat);
+ box(cockpit,.075,.38,1.25,0x181d23,side*.87,.98,.23,blackLeather);
+ box(cockpit,.085,.035,.52,0x727d85,side*.83,1.1,.23,silver);
+ box(cockpit,.12,.10,.16,0x20262d,side*1.01,1.35,-.58);
+ box(cockpit,.025,.045,.10,0x91d3ef,side*1.08,1.37,-.59);
 }
 
-// Rearview and side mirrors
-box(player,.28,.085,.06,0x15191d,0,1.75,-.45);
-box(player,.23,.04,.018,0x8ba9b5,0,1.75,-.415);
-for(const side of [-1,1]){
-  box(player,.20,.12,.18,0x20262d,side*1,1.35,-.58);
-  box(player,.04,.04,.1,0x92b9c9,side*1.06,1.37,-.59);
-}
+// Rear-view mirror
+box(cockpit,.29,.075,.055,0x0a0c0e,0,1.73,-.47);
+box(cockpit,.24,.04,.018,0x9db8c5,0,1.73,-.435);
 
-// Traffic
+// Traffic vehicles
 const traffic=[];
-function trafficCar(color,x,z){
-  const g=new THREE.Group();
-  box(g,1.7,.55,3.2,color,0,.58,0);
-  box(g,1.35,.55,1.45,0x283d4b,0,1.04,-.05);
-  for(const side of [-1,1]){
-    box(g,.28,.12,.1,0xfff1d1,side*.57,.62,-1.58);
-    box(g,.28,.12,.1,0xff2727,side*.57,.62,1.58);
-    wheel(g,side*.9,.37,-1);
-    wheel(g,side*.9,.37,1);
-  }
-  g.position.set(x,0,z);
-  scene.add(g);
-  traffic.push({mesh:g,speed:.35+Math.random()*.55});
+function makeTraffic(color,x,z){
+ const g=new THREE.Group();
+ box(g,1.7,.53,3.15,color,0,.57,0);
+ box(g,1.35,.52,1.4,0x243a49,0,1.02,-.05);
+ for(const side of [-1,1]){
+  box(g,.28,.12,.08,0xfff1d1,side*.56,.61,-1.57);
+  box(g,.28,.12,.08,0xff2929,side*.56,.61,1.57);
+  wheel(g,side*.86,.36,-.98);
+  wheel(g,side*.86,.36,.98);
+ }
+ g.position.set(x,0,z);scene.add(g);
+ traffic.push({mesh:g,extra:Math.random()*2});
 }
 for(let i=0;i<9;i++){
-  trafficCar([0xd72626,0xe6e6e6,0x171b25,0xe7bb2b,0x2e9b72][i%5],
-    [-5,-2.5,2.5,5][Math.floor(Math.random()*4)],-45-i*48);
+ makeTraffic([0xd72626,0xe5e5e5,0x161b24,0xe8b72b,0x2b986f][i%5],
+ [-5,-2.5,2.5,5][Math.floor(Math.random()*4)],-65-i*52);
 }
 
-// Game state
-let speed=0,distance=0,playerX=0,steering=0,steeringVelocity=0,heading=0;
-let crashed=false,crashFlash=0,shake=0;
-let gas=false,brake=false,steerLeft=false,steerRight=false;
+// CONTROLS
+let speed=0,distance=0,playerX=0,steering=0,steerVelocity=0,heading=0;
+let gas=false,brake=false,left=false,right=false,crashed=false,flash=0,shake=0;
 let interiorView=true;
-const speedText=document.getElementById("speed");
-const distanceText=document.getElementById("distance");
-const crashOverlay=document.getElementById("crashMessage");
-const flashElement=document.getElementById("crashFlash");
+const particles=[];
+const $=id=>document.getElementById(id);
 
-// Keyboard controls
 window.addEventListener("keydown",e=>{
-  if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key))e.preventDefault();
-  if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a")steerLeft=true;
-  if(e.key==="ArrowRight"||e.key.toLowerCase()==="d")steerRight=true;
-  if(e.key==="ArrowUp"||e.key.toLowerCase()==="w")gas=true;
-  if(e.key==="ArrowDown"||e.key.toLowerCase()==="s")brake=true;
+ if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key))e.preventDefault();
+ if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a")left=true;
+ if(e.key==="ArrowRight"||e.key.toLowerCase()==="d")right=true;
+ if(e.key==="ArrowUp"||e.key.toLowerCase()==="w")gas=true;
+ if(e.key==="ArrowDown"||e.key.toLowerCase()==="s")brake=true;
 });
 window.addEventListener("keyup",e=>{
-  if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a")steerLeft=false;
-  if(e.key==="ArrowRight"||e.key.toLowerCase()==="d")steerRight=false;
-  if(e.key==="ArrowUp"||e.key.toLowerCase()==="w")gas=false;
-  if(e.key==="ArrowDown"||e.key.toLowerCase()==="s")brake=false;
+ if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a")left=false;
+ if(e.key==="ArrowRight"||e.key.toLowerCase()==="d")right=false;
+ if(e.key==="ArrowUp"||e.key.toLowerCase()==="w")gas=false;
+ if(e.key==="ArrowDown"||e.key.toLowerCase()==="s")brake=false;
 });
-
-function bindHold(id,setter){
-  const b=document.getElementById(id);
-  b.addEventListener("pointerdown",e=>{
-    e.preventDefault();setter(true);b.setPointerCapture(e.pointerId);
-  });
-  const release=e=>{e.preventDefault();setter(false)};
-  b.addEventListener("pointerup",release);
-  b.addEventListener("pointercancel",release);
-  b.addEventListener("lostpointercapture",()=>setter(false));
+function hold(id,set){
+ const b=$(id);
+ b.addEventListener("pointerdown",e=>{
+  e.preventDefault();set(true);
+  try{b.setPointerCapture(e.pointerId)}catch(_){}
+ });
+ const release=e=>{e.preventDefault();set(false)};
+ b.addEventListener("pointerup",release);
+ b.addEventListener("pointercancel",release);
+ b.addEventListener("lostpointercapture",()=>set(false));
 }
-bindHold("leftButton",v=>steerLeft=v);
-bindHold("rightButton",v=>steerRight=v);
-bindHold("gasButton",v=>gas=v);
-bindHold("brakeButton",v=>brake=v);
+hold("left",v=>left=v);
+hold("right",v=>right=v);
+hold("gas",v=>gas=v);
+hold("brake",v=>brake=v);
 
-// Crash particles
-const particles=[];
+// CRASH EFFECT
 function crashEffect(){
-  for(let i=0;i<55;i++){
-    const spark=new THREE.Mesh(
-      new THREE.SphereGeometry(.045+Math.random()*.07,6,6),
-      new THREE.MeshBasicMaterial({color:[0xff5a12,0xffd447,0xffffff][i%3]})
-    );
-    spark.position.set(playerX+(Math.random()-.5)*2.2,.8+Math.random()*1.4,-1+(Math.random()-.5)*2);
-    scene.add(spark);
-    particles.push({
-      mesh:spark,
-      velocity:new THREE.Vector3((Math.random()-.5)*8,Math.random()*7,(Math.random()-.5)*8),
-      life:.5+Math.random()*.8
-    });
-  }
+ for(let i=0;i<60;i++){
+  const p=new THREE.Mesh(new THREE.SphereGeometry(.045+Math.random()*.055,6,6),
+   new THREE.MeshBasicMaterial({color:[0xff4c16,0xffd44a,0xffffff][i%3]}));
+  p.position.set(playerX+(Math.random()-.5)*2,1+Math.random(),-1);
+  scene.add(p);
+  particles.push({mesh:p,v:new THREE.Vector3((Math.random()-.5)*9,Math.random()*7,(Math.random()-.5)*8),life:.6+Math.random()*.8});
+ }
 }
-function crash(){
-  if(crashed)return;
-  crashed=true;
-  speed=0;
-  crashFlash=.9;
-  shake=.8;
-  crashEffect();
-  crashOverlay.style.display="flex";
+function crashGame(){
+ if(crashed)return;
+ crashed=true;speed=0;flash=.85;shake=.9;crashEffect();
+ $("crash").style.display="flex";
 }
+$("restart").onclick=()=>{
+ crashed=false;speed=0;distance=0;playerX=0;steering=0;steerVelocity=0;heading=0;flash=0;shake=0;
+ car.position.set(0,0,0);car.rotation.set(0,0,0);
+ traffic.forEach((t,i)=>{
+  t.mesh.position.x=[-5,-2.5,2.5,5][i%4];
+  t.mesh.position.z=-65-i*52;
+ });
+ particles.forEach(p=>scene.remove(p.mesh));particles.length=0;
+ $("crash").style.display="none";
+};
+$("view").onclick=()=>{
+ interiorView=!interiorView;
+ $("view").textContent=interiorView?"🚘 EXTERIOR VIEW":"🧑 DRIVER VIEW";
+};
 
-document.getElementById("restartButton").addEventListener("click",()=>{
-  crashed=false;speed=0;playerX=0;steering=0;steeringVelocity=0;heading=0;distance=0;
-  crashFlash=0;shake=0;
-  player.position.set(0,0,0);
-  player.rotation.set(0,0,0);
-  traffic.forEach((t,i)=>{
-    t.mesh.position.x=[-5,-2.5,2.5,5][i%4];
-    t.mesh.position.z=-45-i*48;
-  });
-  particles.forEach(p=>scene.remove(p.mesh));
-  particles.length=0;
-  crashOverlay.style.display="none";
-});
-
-document.getElementById("viewButton").addEventListener("click",()=>{
-  interiorView=!interiorView;
-  document.getElementById("viewButton").textContent=
-    interiorView?"🚘 EXTERIOR VIEW":"🧑 DRIVER VIEW";
-});
-
-// Hide exterior body in driver view while keeping cockpit details.
-const interiorObjects=[];
-player.children.forEach(obj=>{
-  const z=obj.position.z, y=obj.position.y;
-  // Most lower body parts are hidden in driver view.
-  if(y<.85 || z < -1.1 || Math.abs(z)>1.6) obj.userData.exterior=true;
-  else interiorObjects.push(obj);
-});
-
+// GAME LOOP
 const clock=new THREE.Clock();
-
 function animate(){
-  requestAnimationFrame(animate);
-  const dt=Math.min(clock.getDelta(),.04);
+ requestAnimationFrame(animate);
+ const dt=Math.min(clock.getDelta(),.04);
+ const travel=speed/3.6;
 
-  if(!crashed){
-    if(gas)speed+=42*dt;
-    else speed-=9*dt;
-    if(brake)speed-=65*dt;
-    speed=THREE.MathUtils.clamp(speed,0,220);
+ if(!crashed){
+  if(gas)speed+=48*dt;else speed-=7*dt;
+  if(brake)speed-=72*dt;
+  speed=THREE.MathUtils.clamp(speed,0,240);
 
-    const speedFactor=.25+speed/130;
-    const input=(steerRight?1:0)-(steerLeft?1:0);
+  const input=(right?1:0)-(left?1:0);
+  steering+=(input-steering)*(1-Math.exp(-6*dt));
+  steerVelocity+=steering*(1.6+speed/34)*dt;
+  steerVelocity*=Math.exp(-3.0*dt);
+  playerX+=steerVelocity*dt*Math.max(.8,speed/35);
+  playerX=THREE.MathUtils.clamp(playerX,-6.25,6.25);
 
-    steering+=(input-steering)*(1-Math.exp(-5.5*dt));
-    steeringVelocity+=steering*5.2*speedFactor*dt;
-    steeringVelocity*=Math.exp(-2.7*dt);
-    playerX+=steeringVelocity*dt*Math.max(.5,speed/45);
-    playerX=THREE.MathUtils.clamp(playerX,-6.3,6.3);
+  const targetHeading=-steering*Math.min(speed/95,1)*.30;
+  heading+=(targetHeading-heading)*(1-Math.exp(-4*dt));
+  car.position.x+=(playerX-car.position.x)*(1-Math.exp(-8*dt));
+  car.rotation.y=heading;
+  steeringWheel.rotation.z=-steering*.65;
 
-    const targetHeading=-steering*Math.min(speed/100,1)*.32;
-    heading+=(targetHeading-heading)*(1-Math.exp(-3.8*dt));
-
-    player.position.x+=(playerX-player.position.x)*(1-Math.exp(-7*dt));
-    player.rotation.y=heading;
-    steeringWheel.rotation.z=-steering*.55;
-
-    distance+=speed*dt/3.6;
-    speedText.textContent=Math.round(speed);
-    distanceText.textContent=Math.floor(distance);
-
-    for(const t of traffic){
-      t.mesh.position.z+=(speed/3.6*1.3+t.speed*8)*dt;
-      const dx=Math.abs(t.mesh.position.x-playerX);
-      const dz=Math.abs(t.mesh.position.z);
-      if(dx<1.75&&dz<2.8&&speed>8){crash();break}
-      if(t.mesh.position.z>12){
-        t.mesh.position.z=-390-Math.random()*100;
-        t.mesh.position.x=[-5,-2.5,2.5,5][Math.floor(Math.random()*4)];
-      }
-    }
-
-    for(const dash of laneDashes){
-      dash.position.z+=speed*dt*.18;
-      if(dash.position.z>15)dash.position.z-=620;
-    }
-  }else{
-    speed=0;
+  // The road markings, roadside scenery and traffic move towards the car.
+  const move=(.7+travel*1.6)*dt;
+  for(const line of roadLines){
+   line.position.z+=move;
+   if(line.position.z>12)line.position.z-=680;
+  }
+  for(const t of traffic){
+   t.mesh.position.z+=(.8+travel*1.35+t.extra)*dt;
+   if(Math.abs(t.mesh.position.x-playerX)<1.65 &&
+      Math.abs(t.mesh.position.z)<2.8 && speed>10){
+    crashGame();break;
+   }
+   if(t.mesh.position.z>15){
+    t.mesh.position.z=-440-Math.random()*150;
+    t.mesh.position.x=[-5,-2.5,2.5,5][Math.floor(Math.random()*4)];
+   }
+  }
+  for(const tree of roadside){
+   tree.position.z+=move;
+   if(tree.position.z>20)tree.position.z=-580-Math.random()*100;
+  }
+  for(const rail of rails){
+   rail.position.z+=move;
+   if(rail.position.z>15)rail.position.z-=680;
   }
 
-  for(let i=particles.length-1;i>=0;i--){
-    const p=particles[i];
-    p.life-=dt;
-    p.velocity.y-=10*dt;
-    p.mesh.position.addScaledVector(p.velocity,dt);
-    if(p.life<=0){
-      scene.remove(p.mesh);
-      particles.splice(i,1);
-    }
+  distance+=travel*dt;
+  $("speed").textContent=Math.round(speed);
+  $("distance").textContent=Math.floor(distance);
+
+  // Drifting too far off the road slows the car and causes a crash at speed.
+  if(Math.abs(playerX)>6.0 && speed>95){
+   speed*=.985;
   }
+ }else{
+  speed=0;
+ }
 
-  crashFlash=Math.max(0,crashFlash-dt*2.5);
-  shake=Math.max(0,shake-dt*2.8);
-  flashElement.style.opacity=crashFlash;
+ for(let i=particles.length-1;i>=0;i--){
+  const p=particles[i];
+  p.life-=dt;p.v.y-=10*dt;p.mesh.position.addScaledVector(p.v,dt);
+  if(p.life<=0){scene.remove(p.mesh);particles.splice(i,1)}
+ }
+ flash=Math.max(0,flash-dt*2.5);
+ shake=Math.max(0,shake-dt*2.8);
+ $("flash").style.opacity=flash;
 
-  // LOWERED DRIVER CAMERA: height is now 1.60
-  const cameraHeight=interiorView?1.60:3.1;
-  const cameraBack=interiorView?-.20:6.7;
-  const cameraSide=interiorView?-.42:0;
-
-  const offset=new THREE.Vector3(cameraSide,cameraHeight,cameraBack);
+ // Camera: lowered driver-seat position.
+ // Raise/lower 1.60 to change the driver's eye height.
+ if(interiorView){
+  cockpit.visible=true;
+  exterior.visible=false;
+  const offset=new THREE.Vector3(-.12,1.60,.02);
   offset.applyAxisAngle(new THREE.Vector3(0,1,0),heading);
-
   camera.position.set(
-    player.position.x+offset.x+(Math.random()-.5)*shake,
-    offset.y+(Math.random()-.5)*shake,
-    player.position.z+offset.z
+   car.position.x+offset.x+(Math.random()-.5)*shake,
+   offset.y+(Math.random()-.5)*shake,
+   offset.z
   );
+  camera.rotation.order="YXZ";
+  camera.rotation.y=heading;
+  camera.rotation.x=0;
+  camera.rotation.z=0;
+ }else{
+  cockpit.visible=false;
+  exterior.visible=true;
+  const desired=new THREE.Vector3(
+   car.position.x+Math.sin(heading)*6,
+   3.4,
+   7.2
+  );
+  camera.position.lerp(desired,1-Math.exp(-4*dt));
+  camera.lookAt(car.position.x,1,-5);
+ }
 
-  if(interiorView){
-    camera.rotation.order="YXZ";
-    camera.rotation.y=heading;
-    camera.rotation.x=0;
-    camera.rotation.z=0;
-  }else{
-    camera.lookAt(player.position.x,.9,-12);
-  }
-
-  // Hide bodywork in driver view, show it in exterior view.
-  player.children.forEach(obj=>{
-    if(obj.userData.exterior)obj.visible=!interiorView;
-  });
-
-  renderer.render(scene,camera);
+ renderer.render(scene,camera);
 }
 
 window.addEventListener("resize",()=>{
-  camera.aspect=innerWidth/innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight);
+ camera.aspect=innerWidth/innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(innerWidth,innerHeight);
 });
-
 animate();
 })();
 </script>
