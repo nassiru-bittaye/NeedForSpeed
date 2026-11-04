@@ -3,343 +3,632 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BMW Driving Simulator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BMW M5 Competition Driving Simulator</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;overflow:hidden;background:#87bde8;font-family:Arial,sans-serif;color:white}
 canvas{display:block}
-#hud{position:fixed;top:14px;left:16px;z-index:2;font-size:22px;font-weight:bold;line-height:1.5;text-shadow:2px 2px 4px #000;pointer-events:none}
-#view{position:fixed;top:14px;right:14px;z-index:3;padding:12px;border:1px solid #aaa;border-radius:10px;background:#111c;color:white}
-#controls{position:fixed;bottom:40px;left:16px;right:16px;z-index:3;display:flex;justify-content:space-between}
-.group{display:flex;gap:10px}
-.control{width:64px;height:64px;border:2px solid #ddd;border-radius:15px;background:#101b;color:white;font-size:27px;touch-action:none}
-#help{position:fixed;bottom:7px;left:0;right:0;text-align:center;font-size:12px;text-shadow:1px 1px 4px #000;pointer-events:none}
-#error{display:none;position:fixed;inset:0;padding:25px;background:#111;color:white;z-index:10}
-@media(max-width:500px){#hud{font-size:17px}.control{width:55px;height:55px}}
+#hud{position:fixed;top:14px;left:16px;z-index:3;font-size:21px;font-weight:bold;line-height:1.5;text-shadow:2px 2px 5px #000;pointer-events:none}
+#view,#reset{position:fixed;top:14px;z-index:4;padding:11px 13px;background:#111d;color:white;border:1px solid #aaa;border-radius:9px;font-weight:bold}
+#view{right:14px}
+#reset{right:14px;top:62px}
+#controls{position:fixed;bottom:40px;left:16px;right:16px;z-index:4;display:flex;justify-content:space-between}
+.group{display:flex;gap:9px}
+.control{width:64px;height:64px;border:2px solid #ddd;border-radius:15px;background:#101b;color:white;font-size:26px;touch-action:none;user-select:none}
+#help{position:fixed;bottom:7px;left:0;right:0;text-align:center;font-size:12px;text-shadow:1px 1px 4px black;pointer-events:none}
+#error{display:none;position:fixed;inset:0;padding:24px;background:#111;color:white;z-index:10}
+@media(max-width:500px){#hud{font-size:17px}.control{width:55px;height:55px}#controls{bottom:35px}}
 </style>
 </head>
 <body>
-<div id="hud">SPEED: <span id="speed">0</span> KM/H<br>DISTANCE: <span id="distance">0</span> M</div>
-<button id="view">🚘 EXTERIOR VIEW</button>
+<div id="hud">
+  BMW M5 COMPETITION<br>
+  SPEED: <span id="speed">0</span> KM/H<br>
+  DISTANCE: <span id="distance">0</span> M
+</div>
+<button id="view">EXTERIOR VIEW</button>
+<button id="reset">RESET DRIVE</button>
 <div id="controls">
- <div class="group"><button class="control" id="left">◀</button><button class="control" id="right">▶</button></div>
- <div class="group"><button class="control" id="brake">▼</button><button class="control" id="gas">▲</button></div>
+  <div class="group">
+    <button class="control" id="left">◀</button>
+    <button class="control" id="right">▶</button>
+  </div>
+  <div class="group">
+    <button class="control" id="brake">▼</button>
+    <button class="control" id="gas">▲</button>
+  </div>
 </div>
 <div id="help">A / ← LEFT · D / → RIGHT · W / ↑ ACCELERATE · S / ↓ BRAKE</div>
-<div id="error">The game could not load. Check your internet connection and refresh.</div>
+<div id="error">The game could not start. Check your internet connection and refresh the page.</div>
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (() => {
-if(!window.THREE){document.getElementById('error').style.display='block';return}
+if (!window.THREE) {
+  document.getElementById("error").style.display = "block";
+  return;
+}
 
-const scene=new THREE.Scene();
-scene.background=new THREE.Color(0x91cafa);
-scene.fog=new THREE.Fog(0x91cafa,100,350);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x91c9f3);
+scene.fog = new THREE.Fog(0x91c9f3, 100, 370);
 
-const camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,900);
-const renderer=new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(innerWidth,innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-renderer.outputColorSpace=THREE.SRGBColorSpace;
-renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.15;
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, .1, 1000);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
 document.body.appendChild(renderer.domElement);
 
-scene.add(new THREE.HemisphereLight(0xe7f4ff,0x524a3b,2));
-const sun=new THREE.DirectionalLight(0xffedcf,2.2);
-sun.position.set(-30,60,-20);
+scene.add(new THREE.HemisphereLight(0xe5f4ff, 0x514b3d, 2.0));
+const sun = new THREE.DirectionalLight(0xffefda, 2.4);
+sun.position.set(-35, 60, -20);
 scene.add(sun);
 
-const mat=(c,r=.8,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
-const asphalt=mat(0x303238),paint=mat(0xf5f1e5),yellow=mat(0xffcf55);
-const grass=mat(0x527b40),bark=mat(0x60442d),leaves=mat(0x245034);
-const black=mat(0x090c12,.32),leather=mat(0x171a20),silver=mat(0x9ba8b3,.25,.7);
-const blue=mat(0x167bc8,.3,.35),glass=mat(0x1b3448,.3,.2);
+const mat = (color, roughness=.75, metalness=0) =>
+  new THREE.MeshStandardMaterial({color, roughness, metalness});
 
-function box(parent,w,h,d,m,x,y,z){
- const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);
- o.position.set(x,y,z);parent.add(o);return o;
+const asphalt = mat(0x303238);
+const roadLine = mat(0xf6f2e9);
+const edgeYellow = mat(0xffd05a);
+const grass = mat(0x537a40);
+const dirt = mat(0x75634a);
+const bark = mat(0x58402a);
+const foliage = [mat(0x244a2d),mat(0x315c35),mat(0x3b663b)];
+const black = mat(0x080b10,.3);
+const leather = mat(0x191b20,.65);
+const silver = mat(0x9aa6b1,.25,.8);
+const carbon = mat(0x242830,.35,.25);
+const blue = mat(0x137bd2,.3,.4);
+const windowGlass = new THREE.MeshStandardMaterial({
+  color:0x233d51,metalness:.35,roughness:.24
+});
+const tireMat = mat(0x101114,.88);
+const rimMat = mat(0x9da8b2,.24,.85);
+const redLight = new THREE.MeshStandardMaterial({
+  color:0xff1425,emissive:0x8c0010,emissiveIntensity:.8
+});
+const whiteLight = new THREE.MeshStandardMaterial({
+  color:0xffffff,emissive:0xd8eaff,emissiveIntensity:1.2
+});
+
+function addBox(parent,w,h,d,material,x,y,z,rx=0,ry=0,rz=0){
+  const o = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
+  o.position.set(x,y,z);
+  o.rotation.set(rx,ry,rz);
+  parent.add(o);
+  return o;
+}
+function addCylinder(parent,r1,r2,h,material,x,y,z,rx=0,ry=0,rz=0){
+  const o = new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,24),material);
+  o.position.set(x,y,z);
+  o.rotation.set(rx,ry,rz);
+  parent.add(o);
+  return o;
 }
 
-// The world is generated from a curved road centreline.
-// All scenery is placed relative to the road, not moved sideways by steering.
-const world=new THREE.Group();
+// ======================================================
+// ROAD AND SCENERY
+// The road is generated along a continuous centreline.
+// The player advances through the world; steering does
+// not directly shove all the scenery sideways.
+// ======================================================
+const world = new THREE.Group();
 scene.add(world);
 
-const curveAmount=0.0016;
-function roadX(z){
- return 24*Math.sin((z+100)*curveAmount)-24*Math.sin(100*curveAmount);
+const roadLength = 1700;
+const roadWidth = 14;
+
+function roadCenter(z) {
+  return 15*Math.sin((z+50)*0.0015) - 15*Math.sin(50*0.0015)
+       + 5*Math.sin((z+180)*0.0032);
 }
-function roadHeading(z){
- return Math.atan(24*curveAmount*Math.cos((z+100)*curveAmount));
+function roadAngle(z) {
+  const delta=.5;
+  return Math.atan2(roadCenter(z+delta)-roadCenter(z-delta),2*delta);
+}
+function placeOnRoad(object,z,lateral=0,y=0) {
+  const a=roadAngle(z), cx=roadCenter(z);
+  object.position.set(cx+Math.cos(a)*lateral,y,z);
+  object.rotation.y=-a;
 }
 
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(1500,1800),grass);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(1800,2200),grass);
 ground.rotation.x=-Math.PI/2;
-ground.position.set(0,-.14,-700);
+ground.position.set(0,-.16,-760);
 world.add(ground);
 
-// Road surface built from short segments that follow the same curve.
+// Dirt shoulders
+for(const side of [-1,1]){
+  const shoulder = new THREE.Mesh(new THREE.PlaneGeometry(4,roadLength),dirt);
+  shoulder.rotation.x=-Math.PI/2;
+  shoulder.position.set(side*9,-.105,-760);
+  world.add(shoulder);
+}
+
+// Curved road surface made of overlapping short road sections
 const roadSegments=[];
-const lines=[];
-const edgeLines=[];
-const roadside=[];
+const laneMarkers=[];
+const edgeMarkers=[];
+const guardPosts=[];
 const trees=[];
 
-for(let z=100;z>-1500;z-=8){
- const x=roadX(z);
- const angle=roadHeading(z);
- const segment=new THREE.Mesh(new THREE.PlaneGeometry(13,9),asphalt);
- segment.rotation.x=-Math.PI/2;
- segment.rotation.z=0;
- segment.position.set(x,-.04,z);
- segment.rotation.y=-angle;
- world.add(segment);
- roadSegments.push(segment);
+for(let z=100;z>-1600;z-=7){
+  const cx=roadCenter(z), angle=roadAngle(z);
+  const segment=new THREE.Mesh(new THREE.PlaneGeometry(roadWidth,8),asphalt);
+  segment.rotation.set(-Math.PI/2,0,0);
+  segment.rotation.order="YXZ";
+  segment.position.set(cx,-.045,z);
+  segment.rotation.y=-angle;
+  world.add(segment);
+  roadSegments.push({mesh:segment,z});
 
- if(Math.round(z/8)%2===0){
-  const line=box(world,.14,.025,4.3,paint,x,.015,z);
-  line.rotation.y=-angle;
-  lines.push(line);
- }
+  if(Math.floor(Math.abs(z)/14)%2===0){
+    const line=addBox(world,.13,.025,4.5,roadLine,cx,.012,z);
+    line.rotation.y=-angle;
+    laneMarkers.push({mesh:line,z});
+  }
 
- for(const side of [-1,1]){
-  const edge=box(world,.10,.025,8,yellow,x+side*6.15,.012,z);
-  edge.rotation.y=-angle;
-  edgeLines.push(edge);
- }
+  for(const side of [-1,1]){
+    const edge=addBox(world,.13,.025,7.5,edgeYellow,cx+side*6.55,.01,z);
+    edge.rotation.y=-angle;
+    edgeMarkers.push({mesh:edge,z});
+
+    const rail=addBox(world,.15,.17,7.5,silver,cx+side*8,.82,z);
+    rail.rotation.y=-angle;
+
+    const post=addBox(world,.12,.82,.13,silver,cx+side*8,.4,z);
+    post.rotation.y=-angle;
+    guardPosts.push({mesh:rail,z,side,lateral:8,offsetY:.82});
+    guardPosts.push({mesh:post,z,side,lateral:8,offsetY:.4});
+  }
 }
 
-// Guardrail posts and trees follow the road centreline.
-for(let z=100;z>-1500;z-=9){
- const x=roadX(z),angle=roadHeading(z);
- for(const side of [-1,1]){
-  const rail=box(world,.13,.18,9,silver,x+side*7,.88,z);
-  rail.rotation.y=-angle;
-  roadside.push(rail);
-
-  const post=box(world,.12,.85,.14,silver,x+side*7,.4,z);
-  roadside.push(post);
- }
+function makeTree(z,side,lateral,scale){
+  const tree=new THREE.Group();
+  addCylinder(tree,.13,.21,2.0,bark,0,1,0);
+  for(let i=0;i<3;i++){
+    const crown=new THREE.Mesh(
+      new THREE.ConeGeometry(1.05-i*.2,2.15,7),
+      foliage[Math.floor(Math.random()*foliage.length)]
+    );
+    crown.position.y=2+i*.77;
+    tree.add(crown);
+  }
+  tree.scale.setScalar(scale);
+  world.add(tree);
+  trees.push({mesh:tree,z,side,lateral,scale});
+  placeOnRoad(tree,z,side*lateral,0);
 }
 
-function makeTree(x,y,z,s){
- const g=new THREE.Group();
- const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.12,.2,2,7),bark);
- trunk.position.y=1;g.add(trunk);
- for(let i=0;i<3;i++){
-  const crown=new THREE.Mesh(new THREE.ConeGeometry(1-i*.18,2.1,7),leaves);
-  crown.position.y=2+i*.78;g.add(crown);
- }
- g.position.set(x,y,z);g.scale.setScalar(s);
- world.add(g);trees.push(g);
-}
-for(let z=100;z>-1450;z-=13){
- const cx=roadX(z);
- for(const side of [-1,1]){
-  makeTree(cx+side*(10+Math.random()*19),0,z,.8+Math.random()*1.3);
- }
+for(let z=90;z>-1550;z-=12){
+  for(const side of [-1,1]){
+    makeTree(z,side,10+Math.random()*22,.8+Math.random()*1.2);
+  }
 }
 
-// BMW-style cockpit stays attached to the camera.
+// Distant hills, no round green bubbles
+for(let i=0;i<22;i++){
+  const hill=new THREE.Mesh(
+    new THREE.ConeGeometry(18+Math.random()*25,25+Math.random()*35,7),
+    mat([0x718d75,0x637f69,0x879985][i%3])
+  );
+  hill.position.set((i-11)*30,8,-150-Math.random()*40);
+  hill.scale.x=1.8;
+  scene.add(hill);
+}
+
+// ======================================================
+// BMW M5 COMPETITION-INSPIRED EXTERIOR
+// Front of the car faces negative Z.
+// ======================================================
+const playerCar = new THREE.Group();
+scene.add(playerCar);
+
+const paintBody = mat(0x202a35,.27,.55);
+const darkTrim = mat(0x101318,.35,.25);
+const grilleMat = mat(0x050608,.28,.4);
+const brakeDisc = mat(0x767b80,.45,.75);
+
+function createWheel(parent,x,y,z){
+  const wheel=new THREE.Group();
+  wheel.position.set(x,y,z);
+  parent.add(wheel);
+
+  const tire=new THREE.Mesh(new THREE.CylinderGeometry(.37,.37,.23,32),tireMat);
+  tire.rotation.z=Math.PI/2;
+  wheel.add(tire);
+
+  const rim=new THREE.Mesh(new THREE.CylinderGeometry(.265,.265,.245,32),rimMat);
+  rim.rotation.z=Math.PI/2;
+  wheel.add(rim);
+
+  const disc=new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.25,24),brakeDisc);
+  disc.rotation.z=Math.PI/2;
+  wheel.add(disc);
+
+  for(let i=0;i<10;i++){
+    const a=i*Math.PI/5;
+    const spoke=addBox(wheel,.025,.40,.035,silver,0,0,0);
+    spoke.rotation.x=a;
+    spoke.rotation.z=Math.PI/2;
+  }
+  const cap=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.26,20),black);
+  cap.rotation.z=Math.PI/2;
+  wheel.add(cap);
+  return wheel;
+}
+
+const frontWheels=[];
+for(const x of [-.99,.99]){
+  for(const z of [-1.22,1.23]){
+    const w=createWheel(playerCar,x,.39,z);
+    if(z<0)frontWheels.push(w);
+  }
+}
+
+// Wide muscular lower body
+addBox(playerCar,2.05,.48,4.3,paintBody,0,.65,0);
+addBox(playerCar,2.12,.20,3.25,paintBody,0,.49,.1);
+
+// Bonnet, sculpted and low
+addBox(playerCar,1.94,.20,1.72,paintBody,0,.92,-1.22,-.025);
+addBox(playerCar,1.65,.035,1.20,darkTrim,0,1.035,-1.20);
+
+// Bonnet power creases
+for(const x of [-.61,.61]){
+  const crease=addBox(playerCar,.035,.012,1.32,silver,x,1.057,-1.20);
+  crease.rotation.y=x*.03;
+}
+
+// Front bumper and splitter
+addBox(playerCar,2.10,.28,.36,paintBody,0,.49,-2.05);
+addBox(playerCar,2.15,.09,.34,black,0,.34,-2.17);
+addBox(playerCar,1.65,.11,.17,darkTrim,0,.40,-2.23);
+
+// BMW-style twin kidney grilles
+for(const x of [-.28,.28]){
+  const grille=addBox(playerCar,.36,.34,.055,grilleMat,x,.69,-2.25);
+  grille.rotation.z=x*.12;
+  for(let i=0;i<5;i++){
+    addBox(playerCar,.025,.28,.025,silver,x-.12+i*.06,.69,-2.285);
+  }
+  const outline=new THREE.Mesh(
+    new THREE.BoxGeometry(.39,.37,.025),
+    silver
+  );
+  outline.position.set(x,.69,-2.265);
+  playerCar.add(outline);
+  // Keep the grille centre dark over its decorative slats.
+  addBox(playerCar,.31,.29,.025,grilleMat,x,.69,-2.285);
+  for(let i=0;i<5;i++){
+    addBox(playerCar,.018,.26,.018,silver,x-.10+i*.05,.69,-2.303);
+  }
+}
+
+// Aggressive LED headlights
+for(const x of [-.72,.72]){
+  const lamp=addBox(playerCar,.48,.15,.06,whiteLight,x,.88,-2.17);
+  lamp.rotation.z=x*.07;
+  addBox(playerCar,.52,.035,.08,darkTrim,x,.79,-2.18);
+  addBox(playerCar,.29,.05,.05,whiteLight,x,.90,-2.21);
+}
+
+// Side air intakes
+for(const x of [-.83,.83]){
+  addBox(playerCar,.28,.22,.06,grilleMat,x,.54,-2.20);
+}
+
+// Roof and cabin
+addBox(playerCar,1.66,.14,1.62,paintBody,0,1.40,.0);
+addBox(playerCar,1.56,.48,1.52,windowGlass,0,1.34,-.05);
+
+// Window pillars
+for(const side of [-1,1]){
+  addBox(playerCar,.09,.54,1.56,paintBody,side*.79,1.32,-.04,0,0,side*.08);
+  addBox(playerCar,.09,.42,.12,paintBody,side*.78,1.31,-.84);
+  addBox(playerCar,.09,.42,.12,paintBody,side*.78,1.31,.76);
+}
+
+// Rear window and trunk
+addBox(playerCar,1.53,.30,.13,windowGlass,0,1.27,.83,.25);
+addBox(playerCar,1.95,.18,.75,paintBody,0,.92,1.65);
+addBox(playerCar,1.95,.10,.24,darkTrim,0,.74,1.99);
+
+// Rear lights, exhausts and diffuser
+for(const x of [-.73,.73]){
+  addBox(playerCar,.48,.14,.07,redLight,x,.83,2.08);
+  addBox(playerCar,.31,.045,.08,redLight,x,.87,2.12);
+}
+addBox(playerCar,1.25,.18,.10,black,0,.50,2.11);
+for(const x of [-.72,-.48,.48,.72]){
+  const exhaust=new THREE.Mesh(new THREE.CylinderGeometry(.105,.105,.10,20),silver);
+  exhaust.rotation.x=Math.PI/2;
+  exhaust.position.set(x,.42,2.17);
+  playerCar.add(exhaust);
+}
+
+// Mirrors
+for(const x of [-1.16,1.16]){
+  addBox(playerCar,.31,.13,.22,paintBody,x,1.20,-.72);
+  addBox(playerCar,.24,.06,.12,windowGlass,x,1.21,-.78);
+}
+
+// Side skirts and door details
+for(const side of [-1,1]){
+  addBox(playerCar,.10,.13,2.15,darkTrim,side*1.04,.42,.02);
+  for(const z of [-.25,.42]){
+    addBox(playerCar,.025,.025,.30,silver,side*1.04,.77,z);
+  }
+}
+
+// Front wheels turn with steering
+// Rear car position is managed separately from the cockpit.
+playerCar.visible=false;
+
+// ======================================================
+// DRIVER-SEAT INTERIOR
+// ======================================================
 const cockpit=new THREE.Group();
 scene.add(cockpit);
-box(cockpit,2.35,.25,.72,leather,0,.77,-1.03);
-box(cockpit,2.25,.05,.52,black,0,.92,-1.02);
-box(cockpit,2.2,.035,.08,silver,0,.66,-1.30);
-box(cockpit,2,.018,.025,blue,0,.69,-1.34);
 
-// Instrument cluster
-box(cockpit,.76,.34,.05,black,-.48,1,-1.23);
-box(cockpit,.67,.25,.015,mat(0x071725),-.48,1,-1.198);
+addBox(cockpit,2.25,.25,.70,leather,0,.76,-1.02);
+addBox(cockpit,2.17,.05,.48,black,0,.90,-1.02);
+addBox(cockpit,2.10,.035,.075,silver,0,.65,-1.29);
+addBox(cockpit,1.95,.018,.025,blue,0,.68,-1.33);
+
+// Digital instrument panel
+addBox(cockpit,.77,.35,.05,black,-.48,.99,-1.22);
+addBox(cockpit,.68,.26,.015,mat(0x061624),-.48,.99,-1.19);
+
 for(const x of [-.68,-.28]){
- const ring=new THREE.Mesh(new THREE.TorusGeometry(.12,.015,8,36),blue);
- ring.position.set(x,1,-1.18);cockpit.add(ring);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.12,.015,8,36),blue);
+  ring.position.set(x,.99,-1.17);
+  cockpit.add(ring);
 }
-box(cockpit,.72,.33,.045,black,.56,1,-1.23);
-box(cockpit,.65,.25,.015,mat(0x102638),.56,1,-1.198);
-box(cockpit,.025,.20,.01,blue,.53,1,-1.185);
-for(let i=0;i<5;i++)box(cockpit,.10,.012,.01,silver,.68,1.08-i*.035,-1.18);
+addBox(cockpit,.73,.34,.045,black,.56,.99,-1.22);
+addBox(cockpit,.66,.26,.015,mat(0x102638),.56,.99,-1.19);
+addBox(cockpit,.025,.20,.01,blue,.53,.99,-1.175);
+for(let i=0;i<5;i++){
+  addBox(cockpit,.10,.012,.01,silver,.68,1.07-i*.035,-1.175);
+}
 
-// Vents, trim and gear selector
-box(cockpit,.72,.12,.06,black,.52,.72,-1.27);
-for(let i=0;i<7;i++)box(cockpit,.07,.012,.01,silver,.25+i*.09,.72,-1.235);
+// Centre vents and console
+addBox(cockpit,.70,.12,.06,black,.52,.72,-1.27);
+for(let i=0;i<7;i++){
+  addBox(cockpit,.07,.012,.01,silver,.25+i*.09,.72,-1.235);
+}
 const hazard=new THREE.Mesh(new THREE.ConeGeometry(.055,.08,3),mat(0xe52c36));
-hazard.position.set(.52,.62,-1.27);hazard.rotation.z=Math.PI;cockpit.add(hazard);
-box(cockpit,.4,.12,.4,black,.72,.48,-.56);
-box(cockpit,.08,.23,.08,silver,.72,.62,-.62);
-const knob=new THREE.Mesh(new THREE.SphereGeometry(.075,16,12),black);
-knob.position.set(.72,.75,-.62);cockpit.add(knob);
+hazard.position.set(.52,.62,-1.27);
+hazard.rotation.z=Math.PI;
+cockpit.add(hazard);
+addBox(cockpit,.4,.12,.4,black,.72,.47,-.55);
+addBox(cockpit,.08,.23,.08,silver,.72,.61,-.62);
+const gearKnob=new THREE.Mesh(new THREE.SphereGeometry(.075,16,12),black);
+gearKnob.position.set(.72,.75,-.62);
+cockpit.add(gearKnob);
 
 // Steering wheel
 const steering=new THREE.Group();
-steering.position.set(-.48,.94,-.59);cockpit.add(steering);
-const rim=new THREE.Mesh(new THREE.TorusGeometry(.36,.045,12,64),black);
-steering.add(rim);
-box(steering,.07,.47,.065,black,0,0,0);
-box(steering,.47,.07,.065,black,0,-.06,0);
+steering.position.set(-.48,.93,-.59);
+cockpit.add(steering);
+const steeringRim=new THREE.Mesh(new THREE.TorusGeometry(.36,.045,12,64),black);
+steering.add(steeringRim);
+addBox(steering,.07,.47,.065,black,0,0,0);
+addBox(steering,.47,.07,.065,black,0,-.06,0);
 const hub=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,.075,32),silver);
-hub.rotation.x=Math.PI/2;hub.position.z=.02;steering.add(hub);
-const logo=new THREE.Mesh(new THREE.CircleGeometry(.10,32),blue);
-logo.position.z=.062;steering.add(logo);
+hub.rotation.x=Math.PI/2;
+hub.position.z=.02;
+steering.add(hub);
+const badge=new THREE.Mesh(new THREE.CircleGeometry(.10,32),blue);
+badge.position.z=.062;
+steering.add(badge);
 
-// Windshield frame and mirrors
-box(cockpit,.13,1.25,.17,black,-1.05,1.43,-1.8);
-box(cockpit,.13,1.25,.17,black,1.05,1.43,-1.8);
-box(cockpit,2.2,.15,.35,black,0,2.12,-1.62);
+// Windshield frame and roof
+addBox(cockpit,.13,1.25,.17,black,-1.05,1.43,-1.8);
+addBox(cockpit,.13,1.25,.17,black,1.05,1.43,-1.8);
+addBox(cockpit,2.2,.15,.35,black,0,2.12,-1.62);
 for(const x of [-1.2,1.2]){
- box(cockpit,.32,.13,.07,black,x,1.23,-1.55);
- box(cockpit,.25,.075,.018,glass,x,1.23,-1.59);
+  addBox(cockpit,.32,.13,.07,black,x,1.23,-1.55);
+  addBox(cockpit,.25,.075,.018,windowGlass,x,1.23,-1.59);
 }
-box(cockpit,.22,.28,1.1,leather,-1.08,.64,-.5);
-box(cockpit,.22,.28,1.1,leather,1.08,.64,-.5);
+addBox(cockpit,.22,.28,1.1,leather,-1.08,.64,-.5);
+addBox(cockpit,.22,.28,1.1,leather,1.08,.64,-.5);
 
-// Traffic cars are placed on the road's centreline.
+// Sport seats
+for(const x of [-.88,.80]){
+  addBox(cockpit,.55,.66,.34,leather,x,.57,.35,-.12);
+  addBox(cockpit,.53,.26,.26,black,x,.97,.43,-.12);
+  addBox(cockpit,.13,.55,.28,leather,x-.23,.77,.35,-.12);
+  addBox(cockpit,.13,.55,.28,leather,x+.23,.77,.35,-.12);
+}
+
+// ======================================================
+// TRAFFIC: same direction as the player, front faces -Z.
+// Rear lights face the driver, so traffic is not backwards.
+// ======================================================
 const traffic=[];
-function makeCar(color,lane,z){
- const g=new THREE.Group();
- box(g,1.45,.48,2.6,mat(color,.3,.25),0,.53,0);
- box(g,1.1,.45,1.12,glass,0,.96,-.1);
- box(g,1.12,.10,.08,mat(0xff2525),0,.59,1.32);
- for(const wx of [-.75,.75])for(const wz of [-.8,.8]){
-  const tire=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.14,16),black);
-  tire.rotation.z=Math.PI/2;tire.position.set(wx,.27,wz);g.add(tire);
- }
- world.add(g);
- traffic.push({g,lane,z,speed:.7+Math.random()*1.3});
-}
-makeCar(0xd2d7dc,2.6,-35);
-makeCar(0x202833,-2.5,-58);
-makeCar(0x9d3027,2.5,-95);
-makeCar(0xe1d9c9,-2.5,-135);
-makeCar(0x245182,2.6,-180);
+function makeTrafficCar(color,lane,z,relativeSpeed){
+  const g=new THREE.Group();
+  const body=mat(color,.3,.3);
 
-// Exterior car model
-const exterior=new THREE.Group();
-scene.add(exterior);
-box(exterior,1.9,.55,4,blue,0,.65,0);
-box(exterior,1.4,.55,1.8,glass,0,1.12,-.2);
-for(const x of [-.98,.98])for(const z of [-1.25,1.25]){
- const tire=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.2,20),black);
- tire.rotation.z=Math.PI/2;tire.position.set(x,.35,z);exterior.add(tire);
-}
-exterior.visible=false;
+  addBox(g,1.65,.52,3.1,body,0,.57,0);
+  addBox(g,1.26,.48,1.55,windowGlass,0,1.00,-.05);
+  addBox(g,1.35,.07,.07,redLight,0,.64,1.57);
+  addBox(g,.28,.10,.08,whiteLight,-.52,.64,-1.58);
+  addBox(g,.28,.10,.08,whiteLight,.52,.64,-1.58);
+  addBox(g,1.6,.12,.22,darkTrim,0,.36,1.52);
 
-// Input
+  for(const x of [-.84,.84]){
+    for(const z2 of [-.98,.98]){
+      const tire=new THREE.Mesh(new THREE.CylinderGeometry(.25,.25,.16,20),tireMat);
+      tire.rotation.z=Math.PI/2;
+      tire.position.set(x,.29,z2);
+      g.add(tire);
+    }
+  }
+
+  world.add(g);
+  traffic.push({mesh:g,z,lane,relativeSpeed});
+}
+makeTrafficCar(0xc7d0d9,2.7,-42,24);
+makeTrafficCar(0x242b34,-2.7,-72,31);
+makeTrafficCar(0x982d27,2.7,-120,18);
+makeTrafficCar(0xd8d2c7,-2.7,-165,35);
+makeTrafficCar(0x254d7c,2.7,-220,27);
+makeTrafficCar(0x494a4c,-2.7,-275,21);
+
+// ======================================================
+// DRIVING PHYSICS
+// ======================================================
 const held={left:false,right:false,gas:false,brake:false};
 const keys={};
-addEventListener('keydown',e=>{
- keys[e.key.toLowerCase()]=true;
- if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
+
+addEventListener("keydown",e=>{
+  keys[e.key.toLowerCase()]=true;
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key))e.preventDefault();
 });
-addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
+addEventListener("blur",()=>Object.keys(held).forEach(k=>held[k]=false));
 
-function bind(id,name){
- const b=document.getElementById(id);
- const down=e=>{e.preventDefault();held[name]=true};
- const up=e=>{e.preventDefault();held[name]=false};
- b.addEventListener('pointerdown',down);
- b.addEventListener('pointerup',up);
- b.addEventListener('pointercancel',up);
- b.addEventListener('pointerleave',up);
+function bindHold(id,name){
+  const b=document.getElementById(id);
+  const down=e=>{e.preventDefault();held[name]=true};
+  const up=e=>{e.preventDefault();held[name]=false};
+  b.addEventListener("pointerdown",down);
+  b.addEventListener("pointerup",up);
+  b.addEventListener("pointercancel",up);
+  b.addEventListener("pointerleave",up);
 }
-bind('left','left');bind('right','right');bind('gas','gas');bind('brake','brake');
+bindHold("left","left");
+bindHold("right","right");
+bindHold("gas","gas");
+bindHold("brake","brake");
 
+let speed=0;
+let distance=0;
+let playerZ=0;
+let carX=0;
+let heading=0;
+let steer=0;
 let outside=false;
-document.getElementById('view').onclick=()=>{
- outside=!outside;
- cockpit.visible=!outside;
- exterior.visible=outside;
- document.getElementById('view').textContent=outside?'👤 DRIVER VIEW':'🚘 EXTERIOR VIEW';
+
+document.getElementById("view").onclick=()=>{
+  outside=!outside;
+  cockpit.visible=!outside;
+  playerCar.visible=outside;
+  document.getElementById("view").textContent=
+    outside?"DRIVER VIEW":"EXTERIOR VIEW";
 };
 
-// Driving state
-let speed=0,distance=0;
-let steer=0,heading=0;
-let playerZ=0;
+document.getElementById("reset").onclick=()=>{
+  speed=0;distance=0;playerZ=0;carX=0;heading=0;steer=0;
+};
 
-// Fixed driver-seat camera; rotate it to match the road direction.
+// Camera starts inside the driver seat
 camera.position.set(0,1.52,.12);
 
 const clock=new THREE.Clock();
 
-function animate(){
- requestAnimationFrame(animate);
- const dt=Math.min(clock.getDelta(),.035);
+function updateRoadObjects(){
+  // Shift all scenery forward by the travelled distance.
+  world.position.z=distance;
 
- const gas=held.gas||keys.w||keys.arrowup;
- const brake=held.brake||keys.s||keys.arrowdown;
- const left=held.left||keys.a||keys.arrowleft;
- const right=held.right||keys.d||keys.arrowright;
+  // Keep player close to the road centre while allowing real steering.
+  world.position.x=-carX;
 
- if(gas)speed+=27*dt;
- else speed-=2.8*dt;
- if(brake)speed-=48*dt;
- speed=THREE.MathUtils.clamp(speed,0,200);
-
- const v=speed/3.6;
- const steerInput=(left?1:0)-(right?1:0);
-
- // Progressive steering: gentle at low speed, responsive at cruising speed.
- steer=THREE.MathUtils.lerp(steer,steerInput,1-Math.exp(-5*dt));
- const turnRate=steer*(0.12+Math.min(v/22,1)*0.48);
- heading+=turnRate*dt;
-
- // Follow the curved road centreline. The steering adjusts heading gradually.
- playerZ-=v*dt;
- distance+=v*dt;
-
- // Move the road world opposite to the player's travel.
- // Road geometry is curved independently, so it stays continuous.
- world.position.z=-playerZ;
- world.position.x=0;
-
- // Camera follows road heading without shifting sideways.
- const roadAngle=roadHeading(playerZ);
- camera.position.set(0,1.52,.12);
- camera.rotation.order='YXZ';
- camera.rotation.y=-(heading+roadAngle);
- camera.rotation.x=0;
- camera.rotation.z=0;
-
- // Wheel animation follows steering.
- steering.rotation.z=-steer*.52;
-
- // Traffic stays aligned to the curved road.
- traffic.forEach(c=>{
-  c.z+=v*dt;
-  if(c.z>playerZ+18){
-   c.z=playerZ-150-Math.random()*150;
-   c.lane=(Math.random()>.5?1:-1)*(2.4+Math.random()*.3);
-  }
-  c.g.position.set(roadX(c.z)+c.lane,0,c.z);
-  c.g.rotation.y=-roadHeading(c.z);
- });
-
- // Keep the world moving forward smoothly.
- document.getElementById('speed').textContent=Math.round(speed);
- document.getElementById('distance').textContent=Math.floor(distance);
-
- if(outside){
-  exterior.position.set(roadX(playerZ),0,playerZ);
-  exterior.rotation.y=-roadHeading(playerZ)-heading;
-  camera.position.set(
-   roadX(playerZ)+Math.sin(heading+roadAngle)*-7,
-   4.2,
-   playerZ+7
-  );
-  camera.lookAt(roadX(playerZ),1,playerZ-15);
- }
-
- renderer.render(scene,camera);
+  // The traffic travels at its own forward speed.
+  traffic.forEach(c=>{
+    c.z += (speed/3.6-c.relativeSpeed/3.6)*clockDelta;
+    if(c.z+distance>16){
+      c.z=-180-Math.random()*180-distance;
+      c.lane=(Math.random()>.5?1:-1)*(2.5+Math.random()*.3);
+    }
+    const z=c.z;
+    const a=roadAngle(z);
+    c.mesh.position.set(roadCenter(z)+Math.cos(a)*c.lane,0,z);
+    c.mesh.rotation.y=-a;
+  });
 }
 
-addEventListener('resize',()=>{
- camera.aspect=innerWidth/innerHeight;
- camera.updateProjectionMatrix();
- renderer.setSize(innerWidth,innerHeight);
+let clockDelta=0;
+
+function animate(){
+  requestAnimationFrame(animate);
+  clockDelta=Math.min(clock.getDelta(),.035);
+
+  const gas=held.gas||keys.w||keys.arrowup;
+  const brake=held.brake||keys.s||keys.arrowdown;
+  const left=held.left||keys.a||keys.arrowleft;
+  const right=held.right||keys.d||keys.arrowright;
+
+  if(gas)speed+=29*clockDelta;
+  else speed-=3.2*clockDelta;
+  if(brake)speed-=50*clockDelta;
+  speed=THREE.MathUtils.clamp(speed,0,260);
+
+  const v=speed/3.6;
+  const steerInput=(left?1:0)-(right?1:0);
+
+  // Steering wheel and car direction both respond to input.
+  // No arbitrary map-shifting on button press.
+  steer=THREE.MathUtils.lerp(steer,steerInput,1-Math.exp(-7*clockDelta));
+
+  // A speed-sensitive turn rate with a gradual response.
+  const turnRate=steer*(.10+Math.min(v/32,1)*.48);
+  heading += turnRate*clockDelta;
+
+  // The player travels forward in world space.
+  const forward=v*clockDelta;
+  playerZ -= forward;
+  distance += forward;
+
+  // Lateral position follows the steering angle smoothly.
+  carX += Math.sin(heading)*forward;
+  carX=THREE.MathUtils.clamp(carX,-5.2,5.2);
+
+  updateRoadObjects();
+
+  // Steering wheel and front wheels visually turn.
+  steering.rotation.z=-steer*.52;
+  frontWheels.forEach(w=>w.rotation.y=steer*.35);
+
+  // Camera stays in the driver seat and follows road curvature
+  const currentRoadAngle=roadAngle(playerZ);
+  const viewYaw=heading-currentRoadAngle;
+
+  if(!outside){
+    camera.position.set(0,1.52,.12);
+    camera.rotation.order="YXZ";
+    camera.rotation.y=-viewYaw;
+    camera.rotation.x=0;
+    camera.rotation.z=0;
+  }else{
+    playerCar.position.set(carX,0,0);
+    playerCar.rotation.y=-heading;
+    camera.position.set(
+      carX+Math.sin(heading)*-7,
+      4.0,
+      7+Math.cos(heading)*7
+    );
+    camera.lookAt(carX+Math.sin(heading)*4,1,-12);
+  }
+
+  document.getElementById("speed").textContent=Math.round(speed);
+  document.getElementById("distance").textContent=Math.floor(distance);
+
+  renderer.render(scene,camera);
+}
+
+addEventListener("resize",()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
 });
+
 animate();
 })();
 </script>
